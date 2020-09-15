@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import pprint
+import os
 #this scrapes all the audio and vocab from 
 #https://www.goethe-verlag.com/book2/EN/ENMK/ENMK002.HTM
 
@@ -11,7 +12,7 @@ def get_urls():
 		urls.append('https://www.goethe-verlag.com/book2/EN/ENMK/ENMK'+str(i).zfill(3)+'.HTM')
 	return urls
 
-def scrape_page(url):
+def get_data(url):
 	page = requests.get(url)
 	soup = BeautifulSoup(page.content, 'html.parser')
 	full_collection =[]
@@ -68,25 +69,52 @@ def scrape_page(url):
 
 	pprint.pprint(full_collection)
 
-	tag = full_collection[1][0]
+	return full_collection
 
+def download_and_rename_file(filename,audio_source, tag):
+	print('download_and_rename_file',filename, audio_source)
+	path = 'audio/'+tag
+	try:
+		os.mkdir(path)
+	except OSError:
+		print ("Creation of the directory %s failed" % path)
+	else:
+		print ("Successfully created the directory %s " % path)
+
+	r = requests.get(audio_source, allow_redirects=True)
+	open('audio/'+tag+'/'+filename+'.mp3', 'wb').write(r.content)
+
+def create_anki_notes(item, tag, filename):
+	print('create_anki_notes',item, tag, filename)
+
+def scrape_page_into_anki_notes(url):
+	full_collection = get_data(url)
+	this_pages_anki_notes = []
+	tag = full_collection[1][0]
 	for item in full_collection:
 		filename = re.sub(r"[,.'`’'|—;:@#?¿!¡<>_\-\"”“&$\[\]\)\(\\\/]+\ *", " ", item[0])
 		filename = filename.title()
 		filename = filename.replace(' ','')
-		print(filename)
-		#download each file
-		#rename it to filename
-		#using the downloaded file, create the required notes
+		audio_source = item[3]
+		download_and_rename_file(filename,audio_source,tag)
+		this_pages_anki_notes.append(create_anki_notes(item, tag, filename))
+		break
+	return this_pages_anki_notes
 
+def create_anki_deck(all_anki_notes):
+	print('create_anki_deck',all_anki_notes)
 
-def scrape_all_pages():
+def run():
 	# urls = get_urls()
 	# pprint.pprint(urls)
 	urls = ['https://www.goethe-verlag.com/book2/EN/ENMK/ENMK003.HTM']
+	all_anki_notes = []
 	for url in urls:
-		scrape_page(url)
-scrape_all_pages()
+		all_anki_notes.append(scrape_page_into_anki_notes(url))
+	create_anki_deck(all_anki_notes)
+
+
+run()
 #create a loop that goes through the entire site
 #create deck
 
