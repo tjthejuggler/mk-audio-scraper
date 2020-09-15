@@ -3,6 +3,31 @@ from bs4 import BeautifulSoup
 import re
 import pprint
 import os
+import time
+
+deck = genanki.Deck(round(time.time()),'macedonian vocab book2')
+
+#make this model the way we want it
+#go down to the place we will use the model and set that stuff up
+lang_aud_model = genanki.Model(
+	1839475849,
+	'Language Audio Model',
+	fields=[
+		{'name': 'Question'},
+		{'name': 'Answer'},
+	],
+	templates=[
+		{
+			'name': 'Card 1',
+			'qfmt': '{{Question}}',
+			'afmt': '{{FrontSide}}<hr id="answer">{{Answer}}',
+		},
+		{
+			'name': 'Card 2',
+			'qfmt': '{{Answer}}',
+			'afmt': '{{FrontSide}}<hr id="answer">{{Question}}',
+		}
+	])
 #this scrapes all the audio and vocab from 
 #https://www.goethe-verlag.com/book2/EN/ENMK/ENMK002.HTM
 
@@ -84,8 +109,18 @@ def download_and_rename_file(filename,audio_source, tag):
 	r = requests.get(audio_source, allow_redirects=True)
 	open('audio/'+tag+'/'+filename+'.mp3', 'wb').write(r.content)
 
+
 def create_anki_notes(item, tag, filename):
-	print('create_anki_notes',item, tag, filename)
+	global my_deck
+
+import genanki
+	
+
+	my_note = genanki.Note(
+		model=lang_aud_model,
+		tags=text_filename,
+		fields=[word + ' ('+str(round(time.time()))+')', dictionary[word][0]])
+	my_deck.add_note(my_note)
 
 def scrape_page_into_anki_notes(url):
 	full_collection = get_data(url)
