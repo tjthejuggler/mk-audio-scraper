@@ -6,8 +6,8 @@ import os
 import time
 import genanki
 
-my_deck = genanki.Deck(round(time.time()),'macedonian vocab book2')
-all_audio_files = []
+
+
 
 #make this model the way we want it
 #go down to the place we will use the model and set that stuff up
@@ -24,17 +24,17 @@ lang_aud_model = genanki.Model(
 		{
 			'name': 'Card 1',
 			'qfmt': '{{English}}',
-			'afmt': '{{Macedonian}}<br>{{Pronunciation}}<br>{{Audio}}',
+			'afmt': '{{English}}<hr id="answer">{{Macedonian}}<br>{{Pronunciation}}<br>{{Audio}}',
 		},
 		{
 			'name': 'Card 2',
 			'qfmt': '{{Macedonian}}',
-			'afmt': '{{English}}<br>{{Pronunciation}}<br>{{Audio}}',
+			'afmt': '{{Macedonian}}<hr id="answer">{{English}}<br>{{Pronunciation}}<br>{{Audio}}',
 		},
 		{
 			'name': 'Card 3',
 			'qfmt': '{{Audio}}',
-			'afmt': '{{Macedonian}}<br>{{Pronunciation}}<br>{{English}}',
+			'afmt': '{{Audio}}<hr id="answer">{{Macedonian}}<br>{{Pronunciation}}<br>{{English}}',
 		}
 	])
 
@@ -112,61 +112,41 @@ def download_and_rename_file(filename,audio_source, tag):
 	r = requests.get(audio_source, allow_redirects=True)
 	open(filename+'.mp3', 'wb').write(r.content)
 
-def create_anki_notes(item, tag, filename):
-	global my_deck
-	global all_audio_files
+def create_anki_notes(item, tag, filename, my_deck, all_audio_files):
 	audio_file = filename+'.mp3'
 	all_audio_files.append(audio_file)
-	print('tag2',tag)
 	my_note = genanki.Note(
 		model=lang_aud_model,
-		tags=[tag],
+		tags=[tag.replace(" ", "")],
 		fields=[item[0], item[1], item[2],'[sound:'+audio_file+']'])
-	print('my_note',my_note)
 	my_deck.add_note(my_note)
+	return my_deck, all_audio_files
 
-def scrape_page_into_anki_notes(url):
+def scrape_page_into_anki_notes(my_deck, url, all_audio_files):
 	full_collection = get_data(url)
-	this_pages_anki_notes = []
 	tag = full_collection[1][0]
-	print('tag',tag)
 	for item in full_collection:
 		filename = re.sub(r"[,.'`’'|—;:@#?¿!¡<>_\-\"”“&$\[\]\)\(\\\/]+\ *", " ", item[0])
 		filename = filename.title()
 		filename = filename.replace(' ','')
 		audio_source = item[3]
 		download_and_rename_file(filename,audio_source,tag)
-		this_pages_anki_notes.append(create_anki_notes(item, tag, filename))
-		break
-	return this_pages_anki_notes
+		my_deck, all_audio_files = create_anki_notes(item, tag, filename, my_deck, all_audio_files)
+	return my_deck, all_audio_files
 
-def create_anki_deck():
-	global my_deck
-	global all_audio_files
-	#genanki.Package(my_deck).write_to_file('test.apkg')
+def create_anki_deck(my_deck, all_audio_files):
 	my_package = genanki.Package(my_deck)
 	my_package.media_files = all_audio_files
-
-	my_package.write_to_file('test.apkg')
-
+	my_package.write_to_file('macedonianBook2.apkg')
 
 def run():
-	# urls = get_urls()
-	# pprint.pprint(urls)
-	urls = ['https://www.goethe-verlag.com/book2/EN/ENMK/ENMK003.HTM']
+	my_deck = genanki.Deck(round(time.time()),'macedonian vocab book2')
+	all_audio_files = []
+	urls = get_urls()
+	pprint.pprint(urls)
+	# urls = ['https://www.goethe-verlag.com/book2/EN/ENMK/ENMK003.HTM']
 	for url in urls:
-		scrape_page_into_anki_notes(url)
-	create_anki_deck()
-
+		my_deck, all_audio_files = scrape_page_into_anki_notes(my_deck, url, all_audio_files)
+	create_anki_deck(my_deck, all_audio_files)
 
 run()
-#create a loop that goes through the entire site
-#create deck
-
-#create a miscScraper github 
-
-#figure out desired card layout
-#	maybe 3 sided, english, macedonian, pronunciation on their own front
-#		with the other 2 and audio on the back
-#figure out how to put audio in with genanki
-#scrape everything
