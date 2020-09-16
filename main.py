@@ -7,6 +7,7 @@ import time
 import genanki
 
 my_deck = genanki.Deck(round(time.time()),'macedonian vocab book2')
+all_audio_files = []
 
 #make this model the way we want it
 #go down to the place we will use the model and set that stuff up
@@ -14,20 +15,26 @@ lang_aud_model = genanki.Model(
 	1839475849,
 	'Language Audio Model',
 	fields=[
-		{'name': 'Question'},
-		{'name': 'Answer'},
-		{'name': 'MyMedia'},
+		{'name': 'English'},
+		{'name': 'Macedonian'},
+		{'name': 'Pronunciation'},
+		{'name': 'Audio'},
 	],
 	templates=[
 		{
 			'name': 'Card 1',
-			'qfmt': '{{Question}}<br>{{MyMedia}}',
-			'afmt': '{{FrontSide}}<hr id="answer">{{Answer}}',
+			'qfmt': '{{English}}',
+			'afmt': '{{Macedonian}}<br>{{Pronunciation}}<br>{{Audio}}',
 		},
 		{
 			'name': 'Card 2',
-			'qfmt': '{{Answer}}<br>{{MyMedia}}',
-			'afmt': '{{FrontSide}}<hr id="answer">{{Question}}',
+			'qfmt': '{{Macedonian}}',
+			'afmt': '{{English}}<br>{{Pronunciation}}<br>{{Audio}}',
+		},
+		{
+			'name': 'Card 3',
+			'qfmt': '{{Audio}}',
+			'afmt': '{{Macedonian}}<br>{{Pronunciation}}<br>{{English}}',
 		}
 	])
 
@@ -102,36 +109,27 @@ def get_data(url):
 
 def download_and_rename_file(filename,audio_source, tag):
 	print('download_and_rename_file',filename, audio_source)
-	path = 'audio/'+tag
-	try:
-		os.mkdir(path)
-	except OSError:
-		print ("Creation of the directory %s failed" % path)
-	else:
-		print ("Successfully created the directory %s " % path)
-
 	r = requests.get(audio_source, allow_redirects=True)
-	open('audio/'+tag+'/'+filename+'.mp3', 'wb').write(r.content)
-
+	open(filename+'.mp3', 'wb').write(r.content)
 
 def create_anki_notes(item, tag, filename):
 	global my_deck
-	# my_note = genanki.Note(
-	# 	model=lang_aud_model,
-	# 	tags=tag,
-	# 	fields=[item[0] [sound:1One.mp3], item[1] ])
+	global all_audio_files
+	audio_file = filename+'.mp3'
+	all_audio_files.append(audio_file)
+	print('tag2',tag)
 	my_note = genanki.Note(
 		model=lang_aud_model,
-		fields=['Ques', 'Ans', '[sound:1One.mp3]'])
-	#my_note = genanki.Note(lang_aud_model, ['question [sound:1One.mp3]','answer'])
-	#deck.add_note(note)
-
+		tags=[tag],
+		fields=[item[0], item[1], item[2],'[sound:'+audio_file+']'])
+	print('my_note',my_note)
 	my_deck.add_note(my_note)
 
 def scrape_page_into_anki_notes(url):
 	full_collection = get_data(url)
 	this_pages_anki_notes = []
 	tag = full_collection[1][0]
+	print('tag',tag)
 	for item in full_collection:
 		filename = re.sub(r"[,.'`’'|—;:@#?¿!¡<>_\-\"”“&$\[\]\)\(\\\/]+\ *", " ", item[0])
 		filename = filename.title()
@@ -142,23 +140,23 @@ def scrape_page_into_anki_notes(url):
 		break
 	return this_pages_anki_notes
 
-def create_anki_deck(all_anki_notes):
+def create_anki_deck():
 	global my_deck
+	global all_audio_files
 	#genanki.Package(my_deck).write_to_file('test.apkg')
 	my_package = genanki.Package(my_deck)
-	my_package.media_files = ['1One.mp3']
+	my_package.media_files = all_audio_files
 
 	my_package.write_to_file('test.apkg')
-	print('create_anki_deck',all_anki_notes)
+
 
 def run():
 	# urls = get_urls()
 	# pprint.pprint(urls)
 	urls = ['https://www.goethe-verlag.com/book2/EN/ENMK/ENMK003.HTM']
-	all_anki_notes = []
 	for url in urls:
-		all_anki_notes.append(scrape_page_into_anki_notes(url))
-	create_anki_deck(all_anki_notes)
+		scrape_page_into_anki_notes(url)
+	create_anki_deck()
 
 
 run()
