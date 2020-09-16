@@ -4,8 +4,9 @@ import re
 import pprint
 import os
 import time
+import genanki
 
-deck = genanki.Deck(round(time.time()),'macedonian vocab book2')
+my_deck = genanki.Deck(round(time.time()),'macedonian vocab book2')
 
 #make this model the way we want it
 #go down to the place we will use the model and set that stuff up
@@ -15,19 +16,22 @@ lang_aud_model = genanki.Model(
 	fields=[
 		{'name': 'Question'},
 		{'name': 'Answer'},
+		{'name': 'MyMedia'},
 	],
 	templates=[
 		{
 			'name': 'Card 1',
-			'qfmt': '{{Question}}',
+			'qfmt': '{{Question}}<br>{{MyMedia}}',
 			'afmt': '{{FrontSide}}<hr id="answer">{{Answer}}',
 		},
 		{
 			'name': 'Card 2',
-			'qfmt': '{{Answer}}',
+			'qfmt': '{{Answer}}<br>{{MyMedia}}',
 			'afmt': '{{FrontSide}}<hr id="answer">{{Question}}',
 		}
 	])
+
+
 #this scrapes all the audio and vocab from 
 #https://www.goethe-verlag.com/book2/EN/ENMK/ENMK002.HTM
 
@@ -112,14 +116,16 @@ def download_and_rename_file(filename,audio_source, tag):
 
 def create_anki_notes(item, tag, filename):
 	global my_deck
-
-import genanki
-	
-
+	# my_note = genanki.Note(
+	# 	model=lang_aud_model,
+	# 	tags=tag,
+	# 	fields=[item[0] [sound:1One.mp3], item[1] ])
 	my_note = genanki.Note(
 		model=lang_aud_model,
-		tags=text_filename,
-		fields=[word + ' ('+str(round(time.time()))+')', dictionary[word][0]])
+		fields=['Ques', 'Ans', '[sound:1One.mp3]'])
+	#my_note = genanki.Note(lang_aud_model, ['question [sound:1One.mp3]','answer'])
+	#deck.add_note(note)
+
 	my_deck.add_note(my_note)
 
 def scrape_page_into_anki_notes(url):
@@ -137,6 +143,12 @@ def scrape_page_into_anki_notes(url):
 	return this_pages_anki_notes
 
 def create_anki_deck(all_anki_notes):
+	global my_deck
+	#genanki.Package(my_deck).write_to_file('test.apkg')
+	my_package = genanki.Package(my_deck)
+	my_package.media_files = ['1One.mp3']
+
+	my_package.write_to_file('test.apkg')
 	print('create_anki_deck',all_anki_notes)
 
 def run():
